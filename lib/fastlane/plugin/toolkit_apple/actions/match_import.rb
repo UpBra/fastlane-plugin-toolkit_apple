@@ -9,15 +9,15 @@ module Fastlane
 			def self.run(params)
 				UI.user_error!('Cannot be run on CI') if Global.is_ci?
 
-				password = ENV['PROJECT_PASSWORD']
-				password ||= ENV['MATCH_PASSWORD']
+				password = ENV.fetch('PROJECT_PASSWORD', nil)
+				password ||= ENV.fetch('MATCH_PASSWORD', nil)
 
 				ENV['MATCH_PASSWORD'] = password
 
 				params.load_configuration_file('Matchfile')
 
 				begin
-					params[:api_key] = other_action.app_store_connect_api_key()
+					params[:api_key] = other_action.app_store_connect_api_key
 				rescue StandardError
 					username = params.fetch(:username)
 

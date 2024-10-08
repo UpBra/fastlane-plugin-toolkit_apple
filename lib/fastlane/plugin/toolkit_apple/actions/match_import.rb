@@ -2,37 +2,22 @@ module Fastlane
 
 	module Actions
 
-		module SharedValues
-			MATCH_IMPORT_CUSTOM_VALUE = :MATCH_IMPORT_CUSTOM_VALUE
-		end
-
 		class MatchImportAction < Action
 
-			module Key
-				PASSWORD = :password
-			end
+			require 'match'
 
 			def self.run(params)
-				require 'match'
+				UI.user_error!('Cannot be run on CI') if Global.is_ci?
 
-				UI.user_error!('Cannot be run on CI') if Global.is_ci
+				password = ENV['PROJECT_PASSWORD']
+				password ||= ENV['MATCH_PASSWORD']
 
-				password = params[Key::PASSWORD]
-				Environment[:MATCH_PASSWORD] = password
+				ENV['MATCH_PASSWORD'] = password
 
-				platform = MatchSetup.platforms.first
-				platform = UI.select('Platform?', MatchSetup.platforms) unless MatchSetup.platforms.count == 1
-
-				configuration = MatchSetup.configurations.first
-				configuration = UI.select('Configuration?', MatchSetup.configurations) unless MatchSetup.configurations.count == 1
-
-				MatchSetup.configure(platform, configuration)
-
-				params = FastlaneCore::Configuration.create(::Match::Options.available_options, {})
 				params.load_configuration_file('Matchfile')
 
 				begin
-					params[:api_key] = app_store_connect_api_key
+					params[:api_key] = other_action.app_store_connect_api_key()
 				rescue StandardError
 					username = params.fetch(:username)
 
@@ -47,7 +32,7 @@ module Fastlane
 					title: "Match Import Summary"
 				)
 
-				unless options[:dry_run]
+				unless params[:dry_run]
 					Dir.chdir('..') do
 						::Match::Importer.new.import_cert(params)
 					end
@@ -59,33 +44,23 @@ module Fastlane
 			#####################################################
 
 			def self.description
-				'A short description with <= 80 characters of what this action does'
+				'Entry to the match `import_cert` command'
 			end
 
 			def self.details
-				# Optional:
-				# this is your chance to provide a more detailed description of this action
-				'You can use this action to do cool things...'
+				'Allows you to utilize same mechanisms for `match` commands (loading Matchfile) when calling the import_cert command'
 			end
 
 			def self.available_options
-				[
+				Match::Options.available_options + [
 					FastlaneCore::ConfigItem.new(
-						key: Key::PASSWORD,
-						env_names: ['MATCH_PASSWORD', 'PROJECT_PASSWORD'],
-						description: 'Match password'
+						key: :dry_run,
+						env_name: 'MATCH_IMPORT_DRY_RUN',
+						description: 'Should we run the import command?',
+						type: Boolean,
+						default_value: false
 					)
 				]
-			end
-
-			def self.output
-				[
-					['TLK_MATCH_IMPORT_CUSTOM_VALUE', 'A description of what this value contains']
-				]
-			end
-
-			def self.return_value
-				# If your method provides a return value, you can describe here what it does
 			end
 
 			def self.authors

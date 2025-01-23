@@ -19,18 +19,17 @@ module Fastlane
 
 				profile_names = params[:names]
 				directory = File.expand_path(params[:directory])
-				files = Dir.glob(directory + "/*.mobileprovision").sort_by(&File.method(:mtime))
+				files = Dir.glob("#{directory}/*.mobileprovision").sort_by { |f| File.mtime(f) }
 				results = {}
 
 				files.reverse_each do |file|
 					profile = ::AppInfo.parse(file)
 					name = profile.profile_name
 
-					if profile_names.include?(name)
-						diff = Fastlane::TimeDiff.new(Time.now, profile.expired_date)
-						results[name] = diff
-						profile_names.delete(name)
-					end
+					next unless profile_names.include?(name)
+					diff = Fastlane::TimeDiff.new(Time.now, profile.expired_date)
+					results[name] = diff
+					profile_names.delete(name)
 				end
 
 				lane_context[:CHECK_PROFILES_RESULT] = results

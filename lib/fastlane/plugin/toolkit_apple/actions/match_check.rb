@@ -32,7 +32,7 @@ module Fastlane
 					profile_names.delete(name)
 				end
 
-				lane_context[:CHECK_PROFILES_RESULT] = results
+				lane_context[SharedValues::MATCH_CHECK_RESULTS] = results
 				results
 			end
 
